@@ -7,7 +7,7 @@ Bare minimum functionality for the app to achieve its purpose (tracking recipes)
 - Users/Basic Authentication
     - Create an Account
     - Log In
-    = Basic profile - Username, Email, Name, Avatar
+    - Basic profile - Username, Email, Name, Pronouns, Join Date
 - Create, view, and persist recipes
     - Ingredients: quantity, unit, ingredient, adjective
     - Steps: simple paragraphs, sequential
@@ -19,10 +19,12 @@ Top priority enhancements from the MVP that should be added to make the app comp
 - Enhanced authentication
     - Email verification
     - Reset password
+    - Change email and password
+    - Reactivate a deactivated account
     - Social features!
     - Discover other users and the recipes they've created
     - Ability to like, favorite, and comment on recipes
-    - More profile features - bio, location (city/state only), privacy settings
+    - More profile features - avatar/profile picture, bio, location (city/state only), privacy settings
     - Friend and follow users!
     - Share recipes with simple links
 - Quality of life

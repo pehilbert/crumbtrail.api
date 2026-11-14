@@ -1,0 +1,26 @@
+POST /api/v1/auth/login
+Request a user login with a username OR email plus a password. If credentials are correct,
+provide a JWT encoded with the user ID (sub claim) to be used on other endpoints.
+The "login" field is treated as an email if it contains "@", otherwise as a username
+(usernames cannot contain "@"). Both are matched case-insensitively.
+Deactivated users cannot log in. Rate limited.
+
+Request body:
+{
+    "login": "johnny123" or "johnnyboy@gmail.com",
+    "password": "password123"
+}
+
+Successful response (200):
+{
+    "id": "user ID",
+    "accessToken": "JWT that was generated"
+}
+
+Invalid request body: 400
+Incorrect credentials or deactivated user: 401 (same response either way)
+Too many attempts: 429
+
+Using the token:
+Send "Authorization: Bearer <accessToken>" on protected endpoints. Tokens expire after
+JWT_EXPIRES_IN (default 1h). A token for a user who has since been deactivated is rejected (401).
