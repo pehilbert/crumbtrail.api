@@ -16,14 +16,16 @@ const email = z.string().trim().toLowerCase().pipe(z.email());
 const name = z.string().trim().min(1).max(50);
 const pronouns = z.string().trim().min(1).max(30).nullable();
 
-export const createUserSchema = z.strictObject({
-  username,
-  password,
-  email,
-  firstName: name,
-  lastName: name,
-  pronouns: pronouns.optional().default(null),
-});
+export const createUserSchema = z
+  .strictObject({
+    username,
+    password,
+    email,
+    firstName: name,
+    lastName: name,
+    pronouns: pronouns.optional().default(null),
+  })
+  .meta({ id: 'CreateUserRequest' });
 export type CreateUserDto = z.infer<typeof createUserSchema>;
 
 export const updateUserSchema = z
@@ -36,5 +38,6 @@ export const updateUserSchema = z
   .partial()
   .refine((body) => Object.keys(body).length > 0, {
     error: 'At least one field must be provided',
-  });
+  })
+  .meta({ id: 'UpdateUserRequest' });
 export type UpdateUserDto = z.infer<typeof updateUserSchema>;
