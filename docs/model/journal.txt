@@ -1,0 +1,6 @@
+Journal (Collection):
+ID: Guid
+Recipe: Recipe.ID
+PostedAt: Timestamp
+EditedAt: Timestamp
+Content: string

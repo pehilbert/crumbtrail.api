@@ -1,0 +1,17 @@
+Recipe (Collection):
+ID: Guid
+Author: User.ID
+PublishedAt: Timestamp
+EditedAt: Timestamp
+Title: string
+Description: string
+Tags: string[]
+TimeEstimation: Duration
+Ingredients: Ingredient[]
+Steps: string[]
+
+Ingredient (Sub-Entity):
+Quantity: double
+Unit: string
+Ingredient: string
+Adjective: string (optional)

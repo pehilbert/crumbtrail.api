@@ -1,0 +1,9 @@
+User (Collection):
+ID: Guid
+Username: string
+Password (stored hashed/encrypted): string
+Email: string
+FirstName: string
+LastName: string
+Avatar: file/binary
+JoinDate: Timestamp
