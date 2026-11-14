@@ -1,34 +1,52 @@
+import { z } from 'zod';
 import type { User } from '../users/user.schema.js';
-import type { JournalView } from './journal.views.js';
-import type { Ingredient, Recipe } from './recipe.schema.js';
+import { type JournalView, journalViewSchema } from './journal.views.js';
+import type { Recipe } from './recipe.schema.js';
 
-export interface RecipeAuthor {
-  id: string;
-  username: string;
-}
+const recipeAuthorSchema = z
+  .object({ id: z.uuid(), username: z.string() })
+  .meta({ id: 'RecipeAuthor' });
 
-export interface RecipeView {
-  id: string;
-  author: RecipeAuthor;
-  title: string;
-  description: string | null;
-  tags: string[];
-  timeEstimateMinutes: number | null;
-  ingredients: Ingredient[];
-  steps: string[];
-  publishedAt: Date;
-  editedAt: Date | null;
-}
+const ingredientViewSchema = z
+  .object({
+    quantity: z.number().nullable(),
+    unit: z.string().nullable(),
+    ingredient: z.string(),
+    adjective: z.string().nullable(),
+  })
+  .meta({ id: 'Ingredient' });
 
-/** GET by ID, POST and PATCH. */
-export interface FullRecipe extends RecipeView {
-  journals: JournalView[];
-}
+const recipeViewSchema = z.object({
+  id: z.uuid(),
+  author: recipeAuthorSchema,
+  title: z.string(),
+  description: z.string().nullable(),
+  tags: z.array(z.string()),
+  timeEstimateMinutes: z.int().nullable(),
+  ingredients: z.array(ingredientViewSchema),
+  steps: z.array(z.string()),
+  publishedAt: z.iso.datetime(),
+  editedAt: z.iso.datetime().nullable(),
+});
+type RecipeView = z.infer<typeof recipeViewSchema>;
 
-/** GET /recipes/me. */
-export interface RecipeSummary extends RecipeView {
-  journalCount: number;
-}
+/** GET by ID, POST and PATCH: the recipe with its journal entries, newest first. */
+export const fullRecipeSchema = recipeViewSchema
+  .extend({ journals: z.array(journalViewSchema) })
+  .meta({ id: 'Recipe' });
+export type FullRecipe = z.infer<typeof fullRecipeSchema>;
+
+/** GET /recipes/me: the recipe with a count of its journal entries. */
+export const recipeSummarySchema = recipeViewSchema
+  .extend({ journalCount: z.int() })
+  .meta({ id: 'RecipeSummary' });
+export type RecipeSummary = z.infer<typeof recipeSummarySchema>;
+
+/** Response to DELETE /recipes/{id}. */
+export const archivedRecipeSchema = z
+  .object({ id: z.uuid(), archived: z.literal(true) })
+  .meta({ id: 'ArchivedRecipe' });
+export type ArchivedRecipe = z.infer<typeof archivedRecipeSchema>;
 
 function toRecipeView(recipe: Recipe, author: User): RecipeView {
   return {
@@ -45,8 +63,8 @@ function toRecipeView(recipe: Recipe, author: User): RecipeView {
       adjective: i.adjective ?? null,
     })),
     steps: recipe.steps,
-    publishedAt: recipe.publishedAt,
-    editedAt: recipe.editedAt ?? null,
+    publishedAt: recipe.publishedAt.toISOString(),
+    editedAt: recipe.editedAt?.toISOString() ?? null,
   };
 }
 

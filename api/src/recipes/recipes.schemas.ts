@@ -22,14 +22,16 @@ const ingredient = z.strictObject({
 const ingredients = z.array(ingredient).min(1).max(100);
 const steps = z.array(z.string().trim().min(1).max(5000)).min(1).max(100);
 
-export const createRecipeSchema = z.strictObject({
-  title,
-  description: description.optional().default(null),
-  tags: tags.optional().default([]),
-  timeEstimateMinutes: timeEstimateMinutes.optional().default(null),
-  ingredients,
-  steps,
-});
+export const createRecipeSchema = z
+  .strictObject({
+    title,
+    description: description.optional().default(null),
+    tags: tags.optional().default([]),
+    timeEstimateMinutes: timeEstimateMinutes.optional().default(null),
+    ingredients,
+    steps,
+  })
+  .meta({ id: 'CreateRecipeRequest' });
 export type CreateRecipeDto = z.infer<typeof createRecipeSchema>;
 
 export const updateRecipeSchema = z
@@ -44,5 +46,6 @@ export const updateRecipeSchema = z
   .partial()
   .refine((body) => Object.keys(body).length > 0, {
     error: 'At least one field must be provided',
-  });
+  })
+  .meta({ id: 'UpdateRecipeRequest' });
 export type UpdateRecipeDto = z.infer<typeof updateRecipeSchema>;

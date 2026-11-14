@@ -11,15 +11,27 @@ import {
   Patch,
   Post,
 } from '@nestjs/common';
+import {
+  ApiCreatedResponse,
+  ApiOkResponse,
+  ApiOperation,
+  ApiTags,
+} from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
+import { type AccessToken, accessTokenSchema } from '../auth/auth.views.js';
 import { CurrentUser } from '../auth/current-user.decorator.js';
 import { Public } from '../auth/public.decorator.js';
 import { AUTH_THROTTLE } from '../auth/throttle.js';
+import { ApiErrors } from '../openapi/openapi.js';
 import { TokenService } from '../security/token.service.js';
 import type { User } from './user.schema.js';
 import {
+  type DeactivatedUser,
+  deactivatedUserSchema,
   type PrivateProfile,
+  privateProfileSchema,
   type PublicProfile,
+  publicProfileSchema,
   toPrivateProfile,
   toPublicProfile,
 } from './user.views.js';
@@ -32,6 +44,7 @@ import {
 } from './users.schemas.js';
 import { UsersService } from './users.service.js';
 
+@ApiTags('users')
 @Controller({ path: 'users', version: '1' })
 export class UsersController {
   constructor(
@@ -43,21 +56,46 @@ export class UsersController {
   @Throttle(AUTH_THROTTLE)
   @Post()
   @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({
+    summary: 'Register a user',
+    description:
+      'Username and email must be unique (case-insensitive). Returns a token so the new user is logged in. Rate limited.',
+  })
+  @ApiCreatedResponse({
+    description: 'Registered and logged in',
+    standardSchema: accessTokenSchema,
+  })
+  @ApiErrors(400, { 409: 'Username or email already taken' }, 429)
   async register(
     @Body({ schema: createUserSchema }) dto: CreateUserDto,
-  ): Promise<{ id: string; accessToken: string }> {
+  ): Promise<AccessToken> {
     const user = await this.users.create(dto);
     return { id: user._id, accessToken: await this.tokens.issue(user._id) };
   }
 
   // Declared before ':id' so "me" is not treated as an ID.
   @Get('me')
+  @ApiOperation({ summary: 'Get my private profile' })
+  @ApiOkResponse({
+    description: 'The caller, including email',
+    standardSchema: privateProfileSchema,
+  })
+  @ApiErrors(401)
   me(@CurrentUser() user: User): PrivateProfile {
     return toPrivateProfile(user);
   }
 
   @Public()
   @Get(':id')
+  @ApiOperation({ summary: "Get a user's public profile" })
+  @ApiOkResponse({
+    description: 'The public profile',
+    standardSchema: publicProfileSchema,
+  })
+  @ApiErrors(
+    { 400: 'Invalid user ID (not a GUID)' },
+    { 404: 'User does not exist or is deactivated' },
+  )
   async findOne(
     @Param('id', { schema: userIdSchema }) id: string,
   ): Promise<PublicProfile> {
@@ -67,6 +105,21 @@ export class UsersController {
   }
 
   @Patch(':id')
+  @ApiOperation({
+    summary: 'Update my profile',
+    description:
+      'Omitted fields are left unchanged; "pronouns": null clears pronouns. Only the user themselves may update.',
+  })
+  @ApiOkResponse({
+    description: 'The updated private profile',
+    standardSchema: privateProfileSchema,
+  })
+  @ApiErrors(
+    { 400: 'Invalid ID, or invalid or empty body' },
+    401,
+    { 403: 'ID does not match the token user' },
+    { 409: 'Username already taken' },
+  )
   async update(
     @Param('id', { schema: userIdSchema }) id: string,
     @CurrentUser() currentUser: User,
@@ -79,10 +132,22 @@ export class UsersController {
   }
 
   @Delete(':id')
+  @ApiOperation({
+    summary: 'Deactivate my account',
+    description:
+      'Soft delete. The username and email stay reserved, and existing tokens stop working.',
+  })
+  @ApiOkResponse({
+    description: 'Deactivated',
+    standardSchema: deactivatedUserSchema,
+  })
+  @ApiErrors({ 400: 'Invalid user ID' }, 401, {
+    403: 'ID does not match the token user',
+  })
   async deactivate(
     @Param('id', { schema: userIdSchema }) id: string,
     @CurrentUser() currentUser: User,
-  ): Promise<{ id: string; active: false }> {
+  ): Promise<DeactivatedUser> {
     assertSelf(currentUser, id);
     if (!(await this.users.deactivate(id))) {
       throw new NotFoundException('User not found');
