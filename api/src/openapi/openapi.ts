@@ -6,15 +6,36 @@ import {
   SwaggerModule,
 } from '@nestjs/swagger';
 import { z } from 'zod';
+import { REFRESH_COOKIE } from '../sessions/refresh-cookie.js';
 
 /** Where the Swagger UI and the raw JSON document are served. */
 export const DOCS_PATH = 'api/docs';
 export const DOCS_JSON_PATH = 'api/docs-json';
 
-/** Marks an operation as public; `buildOpenApiDocument` turns it into `security: []`. */
+/**
+ * Marks an operation as public; `buildOpenApiDocument` turns it into
+ * `security: []` unless the route declares its own (such as the refresh cookie).
+ */
 export const PUBLIC_EXTENSION = 'x-public';
 
 const BEARER = 'bearer';
+
+/** Security scheme for the refresh cookie; use with `@ApiCookieAuth(REFRESH_COOKIE_AUTH)`. */
+export const REFRESH_COOKIE_AUTH = 'refreshCookie';
+
+/** Response headers for endpoints that set or clear the refresh cookie. */
+export const SETS_REFRESH_COOKIE = {
+  'Set-Cookie': {
+    description: `Sets the \`${REFRESH_COOKIE}\` httpOnly refresh cookie (Path=/api/v1/auth)`,
+    schema: { type: 'string' as const },
+  },
+};
+export const CLEARS_REFRESH_COOKIE = {
+  'Set-Cookie': {
+    description: `Clears the \`${REFRESH_COOKIE}\` refresh cookie`,
+    schema: { type: 'string' as const },
+  },
+};
 
 /** Nest's standard error body, shared by every error response. */
 export const errorResponseSchema = z
@@ -71,12 +92,25 @@ export function buildOpenApiDocument(app: INestApplication): OpenAPIObject {
     .setDescription(
       'Backend for Crumbtrail, a recipe-sharing app. Send `Authorization: Bearer <accessToken>` ' +
         '(from POST /api/v1/users or /api/v1/auth/login) on every endpoint not marked as public. ' +
+        'Access tokens are short-lived; browser clients renew them with POST /api/v1/auth/refresh, ' +
+        `which reads the httpOnly \`${REFRESH_COOKIE}\` cookie (send credentials on the auth calls). ` +
         "Errors use Nest's standard shape (ErrorResponse).",
     )
     .setVersion('1')
     .addBearerAuth(
       { type: 'http', scheme: 'bearer', bearerFormat: 'JWT' },
       BEARER,
+    )
+    .addCookieAuth(
+      REFRESH_COOKIE,
+      {
+        type: 'apiKey',
+        in: 'cookie',
+        name: REFRESH_COOKIE,
+        description:
+          'Refresh token cookie set by login, registration and refresh. Browsers send it automatically.',
+      },
+      REFRESH_COOKIE_AUTH,
     )
     .addSecurityRequirements(BEARER)
     .build();
@@ -94,7 +128,8 @@ export function buildOpenApiDocument(app: INestApplication): OpenAPIObject {
         PUBLIC_EXTENSION in operation
       ) {
         delete (operation as Record<string, unknown>)[PUBLIC_EXTENSION];
-        (operation as { security?: unknown[] }).security = [];
+        // Keep a route-specific requirement such as the refresh cookie.
+        (operation as { security?: unknown[] }).security ??= [];
       }
     }
   }

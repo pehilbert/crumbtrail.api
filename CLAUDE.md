@@ -42,6 +42,8 @@ Backend for Crumbtrail, a recipe-sharing app. Built with NestJS 12 and MongoDB (
   - Get the caller with `@CurrentUser()`.
   - When a user tries to change something they don't own, return 403.
   - Put `@Throttle(AUTH_THROTTLE)` on endpoints that accept credentials.
+  - Sessions live in `src/sessions/` (`SessionsModule`): refresh tokens are random values stored as SHA-256 hashes in `refreshTokens`, rotated on every refresh, and sent only in the httpOnly cookie that `RefreshCookie` sets and clears. Anything that starts or ends sessions (login, registration, logout, deactivation) goes through `SessionsService`.
+  - CORS and CSRF are configured in `configureApp` from `CORS_ORIGINS`. `enableCsrfProtection` rejects state-changing requests from untrusted browser origins, so a new frontend origin must be added there.
 - **IDs:** GUID strings stored as Mongo `_id` (default `randomUUID()`), validated with `z.uuid()`.
 - **Responses:** map documents through view functions (for example `toPublicProfile`). Never return `passwordHash`, which is `select: false` on the schema.
 - **Soft deletes:** users use an `active` flag (deactivation); recipes use an `archived` flag (archiving, which may be reversible later). Lookups of live records filter on the flag. Journal entries are hard-deleted.
@@ -52,6 +54,7 @@ Backend for Crumbtrail, a recipe-sharing app. Built with NestJS 12 and MongoDB (
   - The success response with its view schema, for example `@ApiOkResponse({ description, standardSchema: fullRecipeSchema })` (wrap in `z.array()` for lists).
   - `@ApiErrors(...)` with each documented error code, overriding the default description where the endpoint's meaning is specific.
   - Bearer auth applies to every operation by default; `@Public()` also marks the operation as needing no token.
+  - Endpoints that set or clear the refresh cookie add `headers: SETS_REFRESH_COOKIE` (or `CLEARS_REFRESH_COOKIE`) to their success response; endpoints that read it add `@ApiCookieAuth(REFRESH_COOKIE_AUTH)`.
 - **Config:** add every new environment variable to the schema in `src/config/env.ts` and to `.env.example`. Read values through `ConfigService<Env, true>`.
 
 ## Testing
@@ -66,7 +69,7 @@ Backend for Crumbtrail, a recipe-sharing app. Built with NestJS 12 and MongoDB (
 Update this section as work lands.
 
 - **Current phase:** Phase 0 (MVP).
-- **Done:** users and auth (PR #1). Recipes and journals CRUD (PR #2, see `docs/endpoints/recipes.txt` and `docs/endpoints/journals.txt`). Swagger/OpenAPI with the committed spec at `docs/openapi.json` (`feature/swagger`).
-- **Not done yet:** CORS (needed before the Angular app can call the API from the browser; the user will decide how to handle it).
+- **Done:** users and auth (PR #1). Recipes and journals CRUD (PR #2, see `docs/endpoints/recipes.txt` and `docs/endpoints/journals.txt`). Swagger/OpenAPI with the committed spec at `docs/openapi.json` (PR #3). Refresh tokens, logout, CORS and CSRF protection (`feature/auth-refresh`, see `docs/endpoints/auth.txt`).
+- **Not done yet:** nothing outstanding for Phase 0 on the API side.
 - **Resolved design questions:** journals have no author field (always the recipe author); time estimates are whole minutes (`timeEstimateMinutes`).
-- **Deferred:** pagination on `GET /recipes/me` and journal lists; un-archiving recipes.
+- **Deferred:** pagination on `GET /recipes/me` and journal lists; un-archiving recipes; refresh tokens for native mobile clients (GitHub issue #4; needed for the Capacitor/Ionic port, not before); e2e coverage of the 429 rate limits (the e2e config turns throttling off).

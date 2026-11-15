@@ -3,7 +3,7 @@
   "paths": {
     "/api/v1/users": {
       "post": {
-        "description": "Username and email must be unique (case-insensitive). Returns a token so the new user is logged in. Rate limited.",
+        "description": "Username and email must be unique (case-insensitive). Returns an access token and sets the refresh cookie, so the new user is logged in. Rate limited.",
         "operationId": "Users_register",
         "parameters": [],
         "requestBody": {
@@ -19,6 +19,14 @@
         "responses": {
           "201": {
             "description": "Registered and logged in",
+            "headers": {
+              "Set-Cookie": {
+                "description": "Sets the `crumbtrail_refresh` httpOnly refresh cookie (Path=/api/v1/auth)",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -233,7 +241,7 @@
         ]
       },
       "delete": {
-        "description": "Soft delete. The username and email stay reserved, and existing tokens stop working.",
+        "description": "Soft delete. The username and email stay reserved, existing tokens stop working, every session ends and the refresh cookie is cleared.",
         "operationId": "Users_deactivate",
         "parameters": [
           {
@@ -250,6 +258,14 @@
         "responses": {
           "200": {
             "description": "Deactivated",
+            "headers": {
+              "Set-Cookie": {
+                "description": "Clears the `crumbtrail_refresh` refresh cookie",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -297,7 +313,7 @@
     },
     "/api/v1/auth/login": {
       "post": {
-        "description": "\"login\" is treated as an email if it contains \"@\", otherwise as a username; both match case-insensitively. Tokens expire after JWT_EXPIRES_IN (default 1h). Rate limited.",
+        "description": "\"login\" is treated as an email if it contains \"@\", otherwise as a username; both match case-insensitively. Returns an access token (expires after JWT_EXPIRES_IN, default 15m) and sets the refresh cookie. Rate limited.",
         "operationId": "Auth_login",
         "parameters": [],
         "requestBody": {
@@ -313,6 +329,14 @@
         "responses": {
           "200": {
             "description": "Logged in",
+            "headers": {
+              "Set-Cookie": {
+                "description": "Sets the `crumbtrail_refresh` httpOnly refresh cookie (Path=/api/v1/auth)",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -357,6 +381,91 @@
           "auth"
         ],
         "security": []
+      }
+    },
+    "/api/v1/auth/refresh": {
+      "post": {
+        "description": "Reads the refresh cookie (no body or Authorization header needed), returns a new access token and rotates the cookie. Reusing an already spent refresh token ends the session, except within 10 seconds of it being spent (two tabs refreshing at once). Rate limited.",
+        "operationId": "Auth_refresh",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "New access token; the refresh cookie was rotated",
+            "headers": {
+              "Set-Cookie": {
+                "description": "Sets the `crumbtrail_refresh` httpOnly refresh cookie (Path=/api/v1/auth)",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccessToken"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, unknown, expired or reused refresh token, or deactivated user. The cookie is cleared; log in again.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many attempts",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "refreshCookie": []
+          }
+        ],
+        "summary": "Get a new access token",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/v1/auth/logout": {
+      "post": {
+        "description": "Ends the session the refresh cookie belongs to and clears the cookie. No Authorization header needed. Succeeds even without a valid cookie. Discard the access token too.",
+        "operationId": "Auth_logout",
+        "parameters": [],
+        "responses": {
+          "204": {
+            "description": "Logged out",
+            "headers": {
+              "Set-Cookie": {
+                "description": "Clears the `crumbtrail_refresh` refresh cookie",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "refreshCookie": []
+          }
+        ],
+        "summary": "Log out",
+        "tags": [
+          "auth"
+        ]
       }
     },
     "/api/v1/recipes/me": {
@@ -1000,7 +1109,7 @@
   },
   "info": {
     "title": "Crumbtrail API",
-    "description": "Backend for Crumbtrail, a recipe-sharing app. Send `Authorization: Bearer <accessToken>` (from POST /api/v1/users or /api/v1/auth/login) on every endpoint not marked as public. Errors use Nest's standard shape (ErrorResponse).",
+    "description": "Backend for Crumbtrail, a recipe-sharing app. Send `Authorization: Bearer <accessToken>` (from POST /api/v1/users or /api/v1/auth/login) on every endpoint not marked as public. Access tokens are short-lived; browser clients renew them with POST /api/v1/auth/refresh, which reads the httpOnly `crumbtrail_refresh` cookie (send credentials on the auth calls). Errors use Nest's standard shape (ErrorResponse).",
     "version": "1",
     "contact": {}
   },
@@ -1012,6 +1121,12 @@
         "scheme": "bearer",
         "bearerFormat": "JWT",
         "type": "http"
+      },
+      "refreshCookie": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "crumbtrail_refresh",
+        "description": "Refresh token cookie set by login, registration and refresh. Browsers send it automatically."
       }
     },
     "schemas": {

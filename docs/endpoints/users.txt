@@ -33,7 +33,8 @@ User does not exist or is deactivated: 404
 
 POST /api/v1/users
 Registers a new user. Username and email must be unique (case-insensitive). Hash the password
-before storing it. Returns an access token so the new user is logged in immediately. Rate limited.
+before storing it. Returns an access token and sets the refresh cookie (see auth.txt), so the new
+user is logged in immediately. Rate limited.
 
 Request body:
 {
@@ -45,7 +46,7 @@ Request body:
     "email": "johnnyboy@gmail.com"
 }
 
-Successful Response (201):
+Successful Response (201), plus Set-Cookie with a new refresh token:
 {
     "id": "newly generated user ID",
     "accessToken": "JWT for the new user"
@@ -78,6 +79,8 @@ Non-unique username: 409
 DELETE /api/v1/users/{id}
 Delete an account (soft-delete, simply set active flag to false in Mongo). Requires auth token, only that user
 may deactivate themselves. Reactivation is separate, later functionality.
+All of the user's refresh tokens are deleted (every session ends) and the response clears the
+refresh cookie. Their access tokens are already rejected because the user is no longer active.
 
 Successful response (200):
 {

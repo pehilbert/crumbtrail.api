@@ -13,6 +13,7 @@ export default defineConfig({
       THROTTLE_ENABLED: 'false',
       JWT_SECRET: 'e2e-test-secret-that-is-at-least-32-chars',
       JWT_EXPIRES_IN: '1h',
+      CORS_ORIGINS: 'http://localhost:4200',
     },
   },
 });
