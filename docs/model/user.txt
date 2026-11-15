@@ -15,4 +15,5 @@ Avatar: profile picture (planned as a URL to a stored file, uploaded through its
 
 Notes:
 - Deactivated (Active = false) users keep their username and email reserved.
-- Deactivated users cannot log in, existing tokens stop working, and their profile returns 404.
+- Deactivated users cannot log in, existing tokens stop working (access tokens are rejected and
+  refresh tokens are deleted, see refresh_token.txt), and their profile returns 404.
