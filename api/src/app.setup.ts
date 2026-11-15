@@ -14,6 +14,14 @@ export function configureApp(app: INestApplication): INestApplication {
   app.useGlobalPipes(new StandardSchemaValidationPipe());
 
   const config = app.get<ConfigService<Env, true>>(ConfigService);
+  const origins = config.get('CORS_ORIGINS', { infer: true });
+  // Browser frontends on these origins may call the API and send the refresh
+  // cookie. Registered before the CSRF check so its 403s carry CORS headers.
+  if (origins.length > 0)
+    app.enableCors({ origin: origins, credentials: true });
+  // Rejects state-changing browser requests from any other origin.
+  app.enableCsrfProtection({ trustedOrigins: origins });
+
   if (config.get('SWAGGER_ENABLED', { infer: true })) setupSwagger(app);
   return app;
 }

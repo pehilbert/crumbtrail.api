@@ -10,6 +10,7 @@ import {
   Param,
   Patch,
   Post,
+  Res,
 } from '@nestjs/common';
 import {
   ApiCreatedResponse,
@@ -22,8 +23,14 @@ import { type AccessToken, accessTokenSchema } from '../auth/auth.views.js';
 import { CurrentUser } from '../auth/current-user.decorator.js';
 import { Public } from '../auth/public.decorator.js';
 import { AUTH_THROTTLE } from '../auth/throttle.js';
-import { ApiErrors } from '../openapi/openapi.js';
+import {
+  ApiErrors,
+  CLEARS_REFRESH_COOKIE,
+  SETS_REFRESH_COOKIE,
+} from '../openapi/openapi.js';
 import { TokenService } from '../security/token.service.js';
+import { RefreshCookie } from '../sessions/refresh-cookie.js';
+import { SessionsService } from '../sessions/sessions.service.js';
 import type { User } from './user.schema.js';
 import {
   type DeactivatedUser,
@@ -50,6 +57,8 @@ export class UsersController {
   constructor(
     private readonly users: UsersService,
     private readonly tokens: TokenService,
+    private readonly sessions: SessionsService,
+    private readonly refreshCookie: RefreshCookie,
   ) {}
 
   @Public()
@@ -59,17 +68,21 @@ export class UsersController {
   @ApiOperation({
     summary: 'Register a user',
     description:
-      'Username and email must be unique (case-insensitive). Returns a token so the new user is logged in. Rate limited.',
+      'Username and email must be unique (case-insensitive). Returns an access token and sets the refresh cookie, ' +
+      'so the new user is logged in. Rate limited.',
   })
   @ApiCreatedResponse({
     description: 'Registered and logged in',
     standardSchema: accessTokenSchema,
+    headers: SETS_REFRESH_COOKIE,
   })
   @ApiErrors(400, { 409: 'Username or email already taken' }, 429)
   async register(
     @Body({ schema: createUserSchema }) dto: CreateUserDto,
+    @Res({ passthrough: true }) response: unknown,
   ): Promise<AccessToken> {
     const user = await this.users.create(dto);
+    this.refreshCookie.set(response, await this.sessions.start(user._id));
     return { id: user._id, accessToken: await this.tokens.issue(user._id) };
   }
 
@@ -135,11 +148,13 @@ export class UsersController {
   @ApiOperation({
     summary: 'Deactivate my account',
     description:
-      'Soft delete. The username and email stay reserved, and existing tokens stop working.',
+      'Soft delete. The username and email stay reserved, existing tokens stop working, every session ends ' +
+      'and the refresh cookie is cleared.',
   })
   @ApiOkResponse({
     description: 'Deactivated',
     standardSchema: deactivatedUserSchema,
+    headers: CLEARS_REFRESH_COOKIE,
   })
   @ApiErrors({ 400: 'Invalid user ID' }, 401, {
     403: 'ID does not match the token user',
@@ -147,11 +162,14 @@ export class UsersController {
   async deactivate(
     @Param('id', { schema: userIdSchema }) id: string,
     @CurrentUser() currentUser: User,
+    @Res({ passthrough: true }) response: unknown,
   ): Promise<DeactivatedUser> {
     assertSelf(currentUser, id);
     if (!(await this.users.deactivate(id))) {
       throw new NotFoundException('User not found');
     }
+    await this.sessions.endAllForUser(id);
+    this.refreshCookie.clear(response);
     return { id, active: false };
   }
 }

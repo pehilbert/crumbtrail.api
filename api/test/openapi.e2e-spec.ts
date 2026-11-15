@@ -44,6 +44,8 @@ describe('OpenAPI document (e2e)', () => {
   it('documents every route under its versioned path', () => {
     expect(Object.keys(document.paths).sort()).toEqual([
       '/api/v1/auth/login',
+      '/api/v1/auth/logout',
+      '/api/v1/auth/refresh',
       '/api/v1/journals/{id}',
       '/api/v1/recipes',
       '/api/v1/recipes/me',
@@ -67,6 +69,29 @@ describe('OpenAPI document (e2e)', () => {
       document.paths['/api/v1/recipes/{id}'].patch.security,
     ).toBeUndefined();
     expect(JSON.stringify(document)).not.toContain('x-public');
+  });
+
+  it('documents the refresh cookie on the session endpoints', () => {
+    expect(document.components.securitySchemes.refreshCookie).toMatchObject({
+      type: 'apiKey',
+      in: 'cookie',
+      name: 'crumbtrail_refresh',
+    });
+    for (const path of ['/api/v1/auth/refresh', '/api/v1/auth/logout']) {
+      expect(document.paths[path].post.security).toEqual([
+        { refreshCookie: [] },
+      ]);
+    }
+    for (const [path, status] of [
+      ['/api/v1/auth/login', '200'],
+      ['/api/v1/users', '201'],
+      ['/api/v1/auth/refresh', '200'],
+      ['/api/v1/auth/logout', '204'],
+    ]) {
+      expect(
+        document.paths[path].post.responses[status].headers,
+      ).toHaveProperty('Set-Cookie');
+    }
   });
 
   it('derives request bodies and path params from the Zod schemas', () => {
