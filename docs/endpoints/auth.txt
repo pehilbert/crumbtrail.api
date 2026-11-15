@@ -22,7 +22,12 @@ from one login form a session. Presenting a token that was already spent is trea
 ends the whole session, except within 10 seconds of it being spent: that is taken to be two tabs
 refreshing at the same time, and the late request gets its own new token in the same session.
 
-Cross-site request protection: state-changing requests from browser origins other than the API's
+Native mobile clients (deferred until the Capacitor/Ionic port): the refresh token is cookie-only
+for now, which native apps cannot rely on. GitHub issue #4 proposes letting native clients receive
+it in the response body, fixed per session at login so a web session can never switch to a
+readable token. Not part of Phase 0.
+
+Cross-site request protection:state-changing requests from browser origins other than the API's
 own and those in CORS_ORIGINS are rejected with 403 (Fetch Metadata / Origin check). Clients that
 send no Origin header (Postman, servers, mobile apps) are unaffected.
 
