@@ -72,4 +72,4 @@ Update this section as work lands.
 - **Done:** users and auth (PR #1). Recipes and journals CRUD (PR #2, see `docs/endpoints/recipes.txt` and `docs/endpoints/journals.txt`). Swagger/OpenAPI with the committed spec at `docs/openapi.json` (PR #3). Refresh tokens, logout, CORS and CSRF protection (`feature/auth-refresh`, see `docs/endpoints/auth.txt`).
 - **Not done yet:** nothing outstanding for Phase 0 on the API side.
 - **Resolved design questions:** journals have no author field (always the recipe author); time estimates are whole minutes (`timeEstimateMinutes`).
-- **Deferred:** pagination on `GET /recipes/me` and journal lists; un-archiving recipes; refresh tokens for native mobile clients (GitHub issue #4; needed for the Capacitor/Ionic port, not before); e2e coverage of the 429 rate limits (the e2e config turns throttling off).
+- **Deferred:** pagination on `GET /recipes/me` and journal lists; un-archiving recipes; refresh tokens for native mobile clients (GitHub issue #4; needed for the Capacitor/Ionic port, not before);

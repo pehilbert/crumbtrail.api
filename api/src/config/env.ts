@@ -66,8 +66,6 @@ export const envSchema = z
       .default('strict'),
     /** Browser origins allowed to call the API (CORS with credentials, and CSRF trusted origins). */
     CORS_ORIGINS: originList,
-    /** Set to "false" to turn off rate limiting (used by the e2e tests). */
-    THROTTLE_ENABLED: booleanString,
     /** Serves Swagger UI at /api/docs and the OpenAPI JSON at /api/docs-json. Turn off in production. */
     SWAGGER_ENABLED: booleanString,
   })

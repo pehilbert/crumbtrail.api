@@ -18,11 +18,9 @@ import {
   ApiOperation,
   ApiTags,
 } from '@nestjs/swagger';
-import { Throttle } from '@nestjs/throttler';
 import { type AccessToken, accessTokenSchema } from '../auth/auth.views.js';
 import { CurrentUser } from '../auth/current-user.decorator.js';
 import { Public } from '../auth/public.decorator.js';
-import { AUTH_THROTTLE } from '../auth/throttle.js';
 import {
   ApiErrors,
   CLEARS_REFRESH_COOKIE,
@@ -62,7 +60,6 @@ export class UsersController {
   ) {}
 
   @Public()
-  @Throttle(AUTH_THROTTLE)
   @Post()
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({
@@ -76,7 +73,7 @@ export class UsersController {
     standardSchema: accessTokenSchema,
     headers: SETS_REFRESH_COOKIE,
   })
-  @ApiErrors(400, { 409: 'Username or email already taken' }, 429)
+  @ApiErrors(400, { 409: 'Username or email already taken' })
   async register(
     @Body({ schema: createUserSchema }) dto: CreateUserDto,
     @Res({ passthrough: true }) response: unknown,

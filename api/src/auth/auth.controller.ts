@@ -14,7 +14,6 @@ import {
   ApiOperation,
   ApiTags,
 } from '@nestjs/swagger';
-import { Throttle } from '@nestjs/throttler';
 import {
   ApiErrors,
   CLEARS_REFRESH_COOKIE,
@@ -26,7 +25,6 @@ import { type LoginDto, loginSchema } from './auth.schemas.js';
 import { AuthService, type SignedIn } from './auth.service.js';
 import { type AccessToken, accessTokenSchema } from './auth.views.js';
 import { Public } from './public.decorator.js';
-import { AUTH_THROTTLE } from './throttle.js';
 
 @ApiTags('auth')
 @Controller({ path: 'auth', version: '1' })
@@ -37,7 +35,6 @@ export class AuthController {
   ) {}
 
   @Public()
-  @Throttle(AUTH_THROTTLE)
   @Post('login')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
@@ -55,8 +52,7 @@ export class AuthController {
     400,
     {
       401: 'Incorrect credentials or deactivated user (same response either way)',
-    },
-    429,
+    }
   )
   async login(
     @Body({ schema: loginSchema }) dto: LoginDto,
@@ -66,7 +62,6 @@ export class AuthController {
   }
 
   @Public()
-  @Throttle(AUTH_THROTTLE)
   @Post('refresh')
   @HttpCode(HttpStatus.OK)
   @ApiCookieAuth(REFRESH_COOKIE_AUTH)
@@ -85,8 +80,7 @@ export class AuthController {
   @ApiErrors(
     {
       401: 'Missing, unknown, expired or reused refresh token, or deactivated user. The cookie is cleared; log in again.',
-    },
-    429,
+    }
   )
   async refresh(
     @Cookies(REFRESH_COOKIE) refreshToken: string | undefined,

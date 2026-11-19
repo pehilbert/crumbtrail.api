@@ -52,7 +52,6 @@ Successful response (200), plus Set-Cookie with a new refresh token:
 
 Invalid request body: 400
 Incorrect credentials or deactivated user: 401 (same response either way)
-Too many attempts: 429
 
 POST /api/v1/auth/refresh
 Exchange the refresh cookie for a new access token. No request body and no Authorization header
@@ -67,7 +66,6 @@ Successful response (200), plus Set-Cookie with the rotated refresh token:
 Missing, unknown, expired or revoked refresh token, reused spent token, or deactivated user: 401
 (the response also clears the cookie, except for a concurrent refresh inside the 10 second window,
 which succeeds instead)
-Too many attempts: 429
 
 POST /api/v1/auth/logout
 End the session the refresh cookie belongs to and clear the cookie. No Authorization header

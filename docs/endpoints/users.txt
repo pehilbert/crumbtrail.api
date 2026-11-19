@@ -54,7 +54,6 @@ Successful Response (201), plus Set-Cookie with a new refresh token:
 
 Invalid or incomplete request: 400
 Non-unique username or email: 409
-Too many attempts: 429
 
 PATCH /api/v1/users/{id}
 Update certain allowed fields provided for a user. Requires auth token, the requesting user must
