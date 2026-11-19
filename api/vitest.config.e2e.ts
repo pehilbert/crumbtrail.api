@@ -14,6 +14,9 @@ export default defineConfig({
       JWT_SECRET: 'e2e-test-secret-that-is-at-least-32-chars',
       JWT_EXPIRES_IN: '1h',
       CORS_ORIGINS: 'http://localhost:4200',
+      // Pinned so a developer's local .env can't change the cookie attributes the tests assert.
+      REFRESH_COOKIE_SECURE: 'true',
+      REFRESH_COOKIE_SAME_SITE: 'strict',
     },
   },
 });
