@@ -54,16 +54,6 @@
                 }
               }
             }
-          },
-          "429": {
-            "description": "Too many attempts",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
           }
         },
         "summary": "Register a user",
@@ -364,16 +354,6 @@
                 }
               }
             }
-          },
-          "429": {
-            "description": "Too many attempts",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
           }
         },
         "summary": "Log in",
@@ -409,16 +389,6 @@
           },
           "401": {
             "description": "Missing, unknown, expired or reused refresh token, or deactivated user. The cookie is cleared; log in again.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Too many attempts",
             "content": {
               "application/json": {
                 "schema": {

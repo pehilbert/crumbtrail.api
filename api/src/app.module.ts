@@ -1,9 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { APP_GUARD } from '@nestjs/core';
 import { MongooseModule } from '@nestjs/mongoose';
 import { createObserveModule } from '@nestjs/observe';
-import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { AuthModule } from './auth/auth.module.js';
 import { type Env, validateEnv } from './config/env.js';
 import { RecipesModule } from './recipes/recipes.module.js';
@@ -29,17 +27,9 @@ export const { ObserveModule, ObserveInstrument } = createObserveModule();
         uri: config.get('MONGODB_URI', { infer: true }),
       }),
     }),
-    ThrottlerModule.forRootAsync({
-      inject: [ConfigService],
-      useFactory: (config: ConfigService<Env, true>) => ({
-        throttlers: [{ name: 'default', ttl: 60_000, limit: 100 }],
-        skipIf: () => !config.get('THROTTLE_ENABLED', { infer: true }),
-      }),
-    }),
     UsersModule,
     AuthModule,
     RecipesModule,
-  ],
-  providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
+  ]
 })
 export class AppModule {}
